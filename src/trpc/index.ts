@@ -1,22 +1,21 @@
-import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { TRPCError } from '@trpc/server';
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { TRPCError } from "@trpc/server";
 
-import { publicProcedure, router } from './trpc';
-import { db } from '@/db';
+import { privateProcedure, publicProcedure, router } from "./trpc";
+import { db } from "@/db";
 
 export const appRouter = router({
- 
   authCallback: publicProcedure.query(async () => {
     try {
-      console.log('starting authcallback proceedure');
-      
+      console.log("starting authcallback proceedure");
+
       const { getUser } = getKindeServerSession();
       const user = await getUser();
-      console.log('User from Kinde:', user);
+      console.log("User from Kinde:", user);
 
       if (!user || !user.id || !user.email) {
-        console.log('Unauthorized user:', user);
-        throw new TRPCError({ code: 'UNAUTHORIZED' });
+        console.log("Unauthorized user:", user);
+        throw new TRPCError({ code: "UNAUTHORIZED" });
       }
       console.log("User:", user);
 
@@ -31,16 +30,24 @@ export const appRouter = router({
             kindeId: user.id,
           },
         });
-        console.log('User found in DB:', dbUser);
+        console.log("User found in DB:", dbUser);
       }
-      console.log('User found or created:', dbUser);
-      
+      console.log("User found or created:", dbUser);
 
       return { success: true };
     } catch (error) {
       console.error("authhCallback error", error);
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', cause: error });
-    } 
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", cause: error });
+    }
+  }),
+  getUserFiles: privateProcedure.query(async ({ ctx }) => {
+    const { userId, user } = ctx;
+
+    return await db.file.findMany({
+      where: {
+        userId
+      }
+    })
   }),
 });
 
